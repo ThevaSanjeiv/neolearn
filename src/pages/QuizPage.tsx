@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import QuizCard from '../components/QuizCard';
-import { CheckCircle, XCircle, Trophy, RotateCcw, Home } from 'lucide-react';
+import { CheckCircle, XCircle, Trophy, RotateCcw, Home, Save, Trash2, Bookmark, Plus, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Question {
@@ -17,6 +17,8 @@ export function QuizPage() {
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [savedList, setSavedList] = useState<any[]>(JSON.parse(localStorage.getItem('savedQuizzes') || '[]'));
+  const [tab, setTab] = useState<'take'|'saved'>('saved');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export function QuizPage() {
     setAnswers({});
 
     setTimeout(() => {
-      const mockQuestions: Question[] = [
+      const base: Question[] = [
         {
           id: '1',
           question: `What is a key characteristic of ${topicName}?`,
@@ -88,7 +90,14 @@ export function QuizPage() {
           correctAnswer: 2
         }
       ];
-
+      const more: Question[] = [
+        { id: '6', question: `Which data type is typical for ${topicName} inputs?`, options: ['Only images','Only text','Various types like text, images, tabular','Only audio'], correctAnswer: 2 },
+        { id: '7', question: `What helps prevent overfitting in ${topicName}?`, options: ['Using no validation','Early stopping / regularization','Training forever','Removing test set'], correctAnswer: 1 },
+        { id: '8', question: `A confusion matrix is used for?`, options: ['Clustering','Classification evaluation','Feature extraction','Optimization'], correctAnswer: 1 },
+        { id: '9', question: `Cross-validation primarily estimates?`, options: ['Training loss','Generalization performance','GPU speed','Dataset size'], correctAnswer: 1 },
+        { id: '10', question: `Which is true about datasets in ${topicName}?`, options: ['More data can improve models','Data is irrelevant','Labels never needed','Quality does not matter'], correctAnswer: 0 },
+      ]
+      const mockQuestions: Question[] = [...base, ...more];
       setQuestions(mockQuestions);
       setLoading(false);
     }, 1000);
@@ -110,6 +119,19 @@ export function QuizPage() {
 
     setScore(correctAnswers);
     setShowResults(true);
+
+    // Save quiz attempt
+    const attempt = {
+      id: crypto.randomUUID(),
+      topic,
+      date: new Date().toISOString(),
+      score: correctAnswers,
+      total: questions.length,
+      answers,
+      questions,
+    }
+    const saved = JSON.parse(localStorage.getItem('savedQuizzes') || '[]')
+    localStorage.setItem('savedQuizzes', JSON.stringify([attempt, ...saved]))
   };
 
   const resetQuiz = () => {
@@ -134,16 +156,55 @@ export function QuizPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Quiz: {topic}
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Test your knowledge with these questions
-          </p>
+        <div className="mb-6">
+          <div className="flex gap-2">
+            <button onClick={()=>setTab('saved')} className={`px-4 py-2 rounded-lg ${tab==='saved'?'bg-primary text-primary-foreground':'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300'}`}>Quiz History ({savedList.length})</button>
+            <button onClick={()=>setTab('take')} className={`px-4 py-2 rounded-lg ${tab==='take'?'bg-primary text-primary-foreground':'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300'}`}>Take New Quiz</button>
+          </div>
         </div>
 
-        {loading ? (
+        {tab==='saved' ? (
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-700 p-6">
+            <h2 className="text-xl font-semibold mb-4 flex items-center"><Trophy size={18} className="mr-2"/>Quiz History</h2>
+            {savedList.length===0 ? (
+              <div className="text-center py-8">
+                <Trophy size={48} className="mx-auto text-gray-400 dark:text-gray-600 mb-4" />
+                <p className="text-gray-600 dark:text-gray-400 mb-4">No quizzes taken yet.</p>
+                <button 
+                  onClick={() => setTab('take')}
+                  className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center mx-auto"
+                >
+                  <Plus size={16} className="mr-2" />
+                  Take Your First Quiz
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {savedList.map((q) => (
+                  <div key={q.id} className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${Math.round((q.score/q.total)*100) >= 80 ? 'bg-green-100 text-green-600' : Math.round((q.score/q.total)*100) >= 60 ? 'bg-yellow-100 text-yellow-600' : 'bg-red-100 text-red-600'}`}>
+                        <Trophy size={20} />
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">{q.topic}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                          <Calendar size={14} className="mr-1" />
+                          {new Date(q.date).toLocaleString()} · {q.score}/{q.total} ({Math.round((q.score/q.total)*100)}%)
+                        </div>
+                      </div>
+                    </div>
+                    <button onClick={()=>{ const next = savedList.filter(s=>s.id!==q.id); setSavedList(next); localStorage.setItem('savedQuizzes', JSON.stringify(next)); }} className="px-3 py-2 rounded-md bg-red-100 text-red-700 hover:bg-red-200 flex items-center transition-colors">
+                      <Trash2 size={16} className="mr-1"/> Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        {tab==='take' && (loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             <span className="ml-3 text-gray-600 dark:text-gray-400">Generating quiz...</span>
@@ -173,6 +234,13 @@ export function QuizPage() {
               >
                 <RotateCcw size={20} className="mr-2" />
                 Retake Quiz
+              </button>
+              <button
+                onClick={()=>setTab('saved')}
+                className="flex items-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                <Bookmark size={20} className="mr-2" />
+                View Saved
               </button>
               <button
                 onClick={() => navigate('/')}
@@ -222,13 +290,13 @@ export function QuizPage() {
                 className="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-lg font-medium"
                 disabled={Object.keys(answers).length !== questions.length}
               >
-                Submit Quiz
+                <Save size={18} className="inline mr-2"/> Submit & Save Quiz
               </button>
             </div>
           </>
-        )}
+        ))}
 
-        {showResults && (
+        {tab==='take' && showResults && (
           <div className="space-y-6">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white text-center mb-6">
               Review Your Answers

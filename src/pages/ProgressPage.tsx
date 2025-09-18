@@ -3,15 +3,23 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line, P
 import { TrendingUp, Award, BookOpen, Brain, Target, Calendar } from 'lucide-react';
 
 export function ProgressPage() {
-  const quizScores = [
-    { date: 'Mon', score: 85 },
-    { date: 'Tue', score: 92 },
-    { date: 'Wed', score: 78 },
-    { date: 'Thu', score: 96 },
-    { date: 'Fri', score: 88 },
-    { date: 'Sat', score: 94 },
-    { date: 'Sun', score: 87 }
-  ];
+  const savedQuizzes = JSON.parse(localStorage.getItem('savedQuizzes') || '[]') as any[]
+  const savedFlashcards = JSON.parse(localStorage.getItem('savedFlashcards') || '[]') as any[]
+
+  const quizScores = savedQuizzes.length > 0
+    ? savedQuizzes.slice(0, 7).map((q) => ({
+        date: new Date(q.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+        score: Math.round((q.score / q.total) * 100),
+      }))
+    : [
+        { date: 'Mon', score: 85 },
+        { date: 'Tue', score: 92 },
+        { date: 'Wed', score: 78 },
+        { date: 'Thu', score: 96 },
+        { date: 'Fri', score: 88 },
+        { date: 'Sat', score: 94 },
+        { date: 'Sun', score: 87 },
+      ];
 
   const learningProgress = [
     { month: 'Jan', topics: 3, quizzes: 12, flashcards: 45 },
@@ -39,11 +47,16 @@ export function ProgressPage() {
     { icon: Calendar, title: 'Monthly Champion', description: 'Top learner this month', earned: false }
   ];
 
+  const totalQuizzes = savedQuizzes.length
+  const averageScore = totalQuizzes ? Math.round(savedQuizzes.reduce((a,c)=> a + (c.score / c.total) * 100, 0) / totalQuizzes) : 0
+  const totalFlashcards = savedFlashcards.length
+  const totalTopics = new Set([ ...savedQuizzes.map(q=>q.topic), ...savedFlashcards.map((f:any)=>f.topic) ]).size
+
   const stats = [
-    { label: 'Total Topics', value: '24', change: '+3', trend: 'up', icon: BookOpen },
-    { label: 'Quizzes Taken', value: '187', change: '+12', trend: 'up', icon: Brain },
-    { label: 'Flashcards Created', value: '312', change: '+28', trend: 'up', icon: Target },
-    { label: 'Average Score', value: '87%', change: '+5%', trend: 'up', icon: Award }
+    { label: 'Total Topics', value: String(totalTopics || 0), change: '', trend: 'up', icon: BookOpen },
+    { label: 'Quizzes Taken', value: String(totalQuizzes), change: '', trend: 'up', icon: Brain },
+    { label: 'Flashcards Created', value: String(totalFlashcards), change: '', trend: 'up', icon: Target },
+    { label: 'Average Score', value: `${averageScore}%`, change: '', trend: 'up', icon: Award }
   ];
 
   return (
@@ -60,7 +73,7 @@ export function ProgressPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat, index) => (
-            <div key={index} className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-slate-700">
+            <a href={stat.label.includes('Quizzes')?'/quiz': stat.label.includes('Flashcards')?'/flashcards':'/progress'} key={index} className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-slate-700 hover:shadow transition-shadow">
               <div className="flex items-center justify-between mb-4">
                 <stat.icon className="text-primary" size={32} />
                 <div className={`flex items-center text-sm ${
@@ -76,7 +89,7 @@ export function ProgressPage() {
               <p className="text-gray-600 dark:text-gray-400 text-sm">
                 {stat.label}
               </p>
-            </div>
+            </a>
           ))}
         </div>
 

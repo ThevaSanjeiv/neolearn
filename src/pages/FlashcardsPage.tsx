@@ -8,6 +8,7 @@ interface FlashcardData {
   answer: string;
   topic: string;
   saved?: boolean;
+  liked?: boolean;
 }
 
 export function FlashcardsPage() {
@@ -82,12 +83,22 @@ export function FlashcardsPage() {
   const saveFlashcard = (id: string) => {
     const flashcardToSave = flashcards.find(f => f.id === id);
     if (flashcardToSave) {
-      const savedCard = { ...flashcardToSave, saved: true };
-      const newSavedFlashcards = [...savedFlashcards, savedCard];
-      setSavedFlashcards(newSavedFlashcards);
-      localStorage.setItem('savedFlashcards', JSON.stringify(newSavedFlashcards));
+      const isCurrentlySaved = flashcardToSave.saved;
       
-      setFlashcards(prev => prev.map(f => f.id === id ? { ...f, saved: true } : f));
+      if (isCurrentlySaved) {
+        // Unsave the flashcard
+        const newSavedFlashcards = savedFlashcards.filter(f => f.id !== id);
+        setSavedFlashcards(newSavedFlashcards);
+        localStorage.setItem('savedFlashcards', JSON.stringify(newSavedFlashcards));
+        setFlashcards(prev => prev.map(f => f.id === id ? { ...f, saved: false } : f));
+      } else {
+        // Save the flashcard
+        const savedCard = { ...flashcardToSave, saved: true };
+        const newSavedFlashcards = [...savedFlashcards, savedCard];
+        setSavedFlashcards(newSavedFlashcards);
+        localStorage.setItem('savedFlashcards', JSON.stringify(newSavedFlashcards));
+        setFlashcards(prev => prev.map(f => f.id === id ? { ...f, saved: true } : f));
+      }
     }
   };
 
@@ -98,6 +109,12 @@ export function FlashcardsPage() {
     
     setFlashcards(prev => prev.map(f => f.id === id ? { ...f, saved: false } : f));
   };
+
+  const toggleLike = (id: string) => {
+    const updated = savedFlashcards.map(f => f.id === id ? { ...f, liked: !f.liked } : f)
+    setSavedFlashcards(updated)
+    localStorage.setItem('savedFlashcards', JSON.stringify(updated))
+  }
 
   const shuffleFlashcards = () => {
     const currentFlashcards = activeTab === 'generated' ? flashcards : savedFlashcards;
@@ -205,6 +222,7 @@ export function FlashcardsPage() {
                     card={flashcard}
                     onSave={saveFlashcard}
                     onDelete={deleteFlashcard}
+                    onLike={activeTab==='saved'? toggleLike : undefined}
                     showActions={true}
                   />
                 ))}

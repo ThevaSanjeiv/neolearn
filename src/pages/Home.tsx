@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BookOpen, Brain, Zap, TrendingUp } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 export function Home() {
   const [topic, setTopic] = useState('')
   const navigate = useNavigate()
+  const { user, updateEducationLevel } = useAuth()
 
   const handleAction = (action: string) => {
     if (!topic.trim()) {
@@ -57,6 +59,16 @@ export function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
       <div className="max-w-4xl mx-auto px-4 py-12">
+        {!user?.educationLevel && (
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-lg mb-8">
+            <h2 className="text-xl font-semibold mb-2">Tell us about you</h2>
+            <p className="text-muted-foreground mb-4">Are you currently in school or college? This helps tailor your content.</p>
+            <div className="flex gap-3">
+              <button onClick={()=>updateEducationLevel('school')} className="px-4 py-2 rounded-md bg-primary text-primary-foreground">School</button>
+              <button onClick={()=>updateEducationLevel('college')} className="px-4 py-2 rounded-md bg-secondary text-secondary-foreground">College</button>
+            </div>
+          </div>
+        )}
         <div className="text-center mb-12">
           <h1 className="text-4xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             Welcome to NeoLearn
