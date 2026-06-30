@@ -18,8 +18,15 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
+const publicUser: UserProfile = {
+  id: 'public',
+  name: 'Public Learner',
+  email: '',
+  educationLevel: null,
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(null)
+  const [user, setUser] = useState<UserProfile | null>(publicUser)
 
   useEffect(() => {
     const stored = localStorage.getItem('neolearn_user')
@@ -27,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         setUser(JSON.parse(stored))
       } catch {
-        setUser(null)
+        setUser(publicUser)
       }
     }
   }, [])
@@ -56,16 +63,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = () => {
-    setUser(null)
+    setUser(publicUser)
   }
 
   const updateEducationLevel = (level: 'school' | 'college') => {
-    setUser((prev) => (prev ? { ...prev, educationLevel: level } : prev))
+    setUser((prev) => ({ ...(prev ?? publicUser), educationLevel: level }))
   }
 
   const value = useMemo<AuthContextValue>(() => ({
     user,
-    isAuthenticated: !!user,
+    isAuthenticated: true,
     login,
     signup,
     logout,
